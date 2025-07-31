@@ -64,7 +64,7 @@ async def investment_conversation(
                     name="elicit-investment-conversation",
                     arguments={"session_id": session_id},
                 )
-                return result.structuredContent
+                await websocket.send_json(result.structuredContent)
             except Exception as e:
                 logger.exception(e)
             finally:
