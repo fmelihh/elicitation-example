@@ -25,7 +25,9 @@ async def smart_elicitation_callback(
     print(params)
 
     data = json.loads(params.message)
-    await WEBSOCKET_MANAGER[data["session_id"]].send_json({"message": data["ai_message"]})
+    await WEBSOCKET_MANAGER[data["session_id"]].send_json(
+        {"message": data["ai_message"], "step_name": data["step_name"]}
+    )
 
     user_message = None
     if data["retrieve_output"] is True:
@@ -34,10 +36,10 @@ async def smart_elicitation_callback(
 
     return types.ElicitResult(
         action="accept",
-        content={
-            "user_message": user_message
-        },
+        content={"user_message": user_message},
     )
+
+
 @app.websocket("/investment-conversation")
 async def investment_conversation(
     websocket: WebSocket,
@@ -62,8 +64,7 @@ async def investment_conversation(
                     name="elicit-investment-conversation",
                     arguments={"session_id": session_id},
                 )
-                return result
-
+                return result.structuredContent
             except Exception as e:
                 logger.exception(e)
             finally:

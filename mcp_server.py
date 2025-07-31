@@ -27,19 +27,19 @@ mcp_server = FastMCP("Investment MCP Server", port=8001, host="0.0.0.0")
 STEPS = [
     (
         "purpose",
-        "The user is defining their investment purpose. Ask them why they are investing — for example, retirement, wealth growth, education, or a major purchase. If a purpose is provided, confirm and ask for more detail.",
+        "Step 1, The user is defining their investment purpose. Ask them why they are investing — for example, retirement, wealth growth, education, or a major purchase. If a purpose is provided, confirm.",
     ),
     (
         "timeline",
-        "The user is specifying their investment timeline. Ask how long they plan to keep the investment — short-term (1–3 years), medium-term (3–7 years), or long-term (7+ years). If a value is given, confirm and ask if they need liquidity before then.",
+        "Step 2, The user is specifying their investment timeline. Ask how long they plan to keep the investment — short-term (1–3 years), medium-term (3–7 years), or long-term (7+ years). If a value is given, confirm and ask if they need liquidity before then.",
     ),
     (
         "risk_tolerance",
-        "The user is describing their risk tolerance. Ask how comfortable they are with potential losses in exchange for potential returns. If a level (low, moderate, high) is provided, confirm and ask for past experience or examples.",
+        "Step 3, The user is describing their risk tolerance. Ask how comfortable they are with potential losses in exchange for potential returns. If a level (low, moderate, high) is provided, confirm and ask for past experience or examples.",
     ),
     (
         "investment_entry",
-        "The user is entering how they plan to invest. Ask how much they plan to invest and whether it's a one-time or recurring investment. If they mention an amount or product (e.g., ETFs), confirm and ask about timing or strategy.",
+        "Step 4, The user is entering how they plan to invest. Ask how much they plan to invest and whether it's a one-time or recurring investment. If they mention an amount or product (e.g., ETFs), confirm and ask about timing or strategy.",
     ),
 ]
 
@@ -99,15 +99,21 @@ async def retrieve_agent_chain():
         {step_prompt}
         
         Your task is to:
-            1. Generate a concise, user-facing message (`ai_message`) asking for or confirming information.
-            2. If the user's input (parameter) is sufficient to proceed, extract it into the `investment_data` field. Otherwise, leave `investment_data` as null and guide the user to clarify.
-            
+            - Generate a concise, user-facing message (`ai_message`) asking for or confirming information.
+            - If the user's input (parameter) is sufficient to proceed, extract it into the `investment_data` field. Otherwise, leave `investment_data` as null and guide the user to clarify.
+        
+            - If `investment_data` is provided (i.e. already filled), simply thank the user for their response.
+            - Do **not** ask any follow-up questions or mention the next step.
+
         Always respond in **this JSON structure**:
         {{
           "ai_message": "string",  
           "investment_data": "string or null"
         }}
-    """
+        
+        If the investment_data field is filled, simply thank the user. Do not mention anything about the next step.    
+        
+        """
     prompt = ChatPromptTemplate.from_messages(
         [
             ("system", system_message),
@@ -157,6 +163,7 @@ async def elicit_investment_conversation(
                             "session_id": session_id,
                             "retrieve_output": retrieve_output,
                             "ai_message": ai_output.ai_message,
+                            "step_name": step_name,
                         }
                     ),
                     schema=ElicitationResponse,
@@ -180,6 +187,7 @@ async def elicit_investment_conversation(
         setattr(investment_output, step_name, step_output)
 
     return investment_output
+
 
 if __name__ == "__main__":
     mcp_server.run(transport="streamable-http")
